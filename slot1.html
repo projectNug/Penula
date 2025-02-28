@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMULATOR SLOT 🎰</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #111;
+            color: white;
+        }
+        .slot-container {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin: 20px auto;
+            position: relative;
+        }
+        .reel {
+            width: 70px;
+            height: 280px;
+            overflow: hidden;
+            border-radius: 5px;
+            background: #222;
+            position: relative;
+        }
+        .symbols {
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            width: 100%;
+            transition: transform 2s cubic-bezier(0.2, 1, 0.3, 1);
+        }
+        .symbol {
+            width: 100%;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 35px;
+            background: #333;
+        }
+        .balance {
+            font-size: 20px;
+            margin: 10px;
+        }
+        .button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+        }
+        .spin-button { background-color: gold; }
+        .auto-button { background-color: #3498db; color: white; }
+        .stop-button { background-color: red; color: white; }
+        .turbo-button { background-color: purple; color: white; margin-top: 10px; }
+        .turbo-button.active { background-color: yellow; color: black; }
+        .bet-options { 
+            margin: 10px;
+            font-size: 18px;
+        }
+        .bet-options select {
+            font-size: 20px;
+            padding: 5px;
+        }
+        #message {
+            font-size: 18px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .button-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎰 SIMULATOR SLOT 🎰</h1>
+
+    <div class="slot-container" id="slot-container"></div>
+    <div class="balance">
+        Saldo: <span id="saldo">100.000</span>
+    </div>
+
+    <div class="bet-options">
+        <label>Taruhan: </label>
+        <select id="bet-amount">
+            <option value="100" selected>100</option>
+            <option value="250">250</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+            <option value="2000">2000</option>
+            <option value="5000">5000</option>
+            <option value="10000">10000</option>
+        </select>
+    </div>
+
+    <div class="button-container">
+        <button class="button spin-button" id="spin-btn">SPIN 🎰</button>
+        <button class="button auto-button" id="auto-btn">AUTO SPIN 🔄</button>
+        <button class="button stop-button" id="stop-btn">❌ STOP</button>
+        <button class="button turbo-button" id="turbo-btn">TURBO ⚡</button>
+    </div>
+
+    <p id="message"></p>
+
+    <audio id="reel-sound" src="koin-jatuh.mp3"></audio>
+    <audio id="win-sound" src="suara-bonus1.mp3"></audio>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let saldo = 100000;
+            let betAmount = 100;  // Taruhan default diatur ke 100
+            const symbols = ["🍒", "🍋", "🍉", "🍇", "7️⃣", "🔔", "⭐", "💎"];
+            const reels = [];
+            let isSpinning = false;
+            let turboMode = false;
+            let autoSpin = false;
+            const totalSymbols = 1000;
+            let lastPositions = [0, 0, 0, 0, 0];  
+
+            function createSlots() {
+                let container = document.getElementById("slot-container");
+                container.innerHTML = "";
+                reels.length = 0;
+
+                for (let j = 0; j < 5; j++) {
+                    let reel = document.createElement("div");
+                    reel.classList.add("reel");
+
+                    let symbolsContainer = document.createElement("div");
+                    symbolsContainer.classList.add("symbols");
+                    reel.appendChild(symbolsContainer);
+
+                    // Menambahkan simbol acak pada reel saat pertama kali dimuat
+                    for (let i = 0; i < totalSymbols; i++) {  
+                        let symbol = document.createElement("div");
+                        symbol.classList.add("symbol");
+                        symbol.innerText = symbols[Math.floor(Math.random() * symbols.length)]; // Pilih simbol secara acak
+                        symbolsContainer.appendChild(symbol);
+                    }
+
+                    symbolsContainer.style.transform = `translateY(${lastPositions[j]}px)`;
+                    container.appendChild(reel);
+                    reels.push(symbolsContainer);
+                }
+            }
+
+            function playSound(soundId) {
+                let sound = document.getElementById(soundId);
+                sound.currentTime = 0;
+                sound.play();
+            }
+
+            function spinSlot() {
+                if (isSpinning) return;
+                isSpinning = true;
+                betAmount = parseInt(document.getElementById("bet-amount").value);
+
+                if (saldo < betAmount) {
+                    document.getElementById("message").innerText = "Saldo tidak cukup!";
+                    isSpinning = false;
+                    return;
+                }
+
+                saldo -= betAmount;
+                document.getElementById("saldo").innerText = saldo.toLocaleString('id-ID');
+
+                playSound("reel-sound");
+
+                let finalPositions = [];
+                reels.forEach((reel, index) => {
+                    let finalPos = lastPositions[index] - (Math.floor(Math.random() * 10 + 5) * 70);
+                    finalPositions.push(finalPos);
+                });
+
+                reels.forEach((reel, index) => {
+                    let totalHeight = finalPositions[index];
+
+                    // Perubahan kecepatan turbo (lebih cepat 3 kali lipat)
+                    reel.style.transition = `transform ${turboMode ? 1 : 3}s cubic-bezier(0.2, 1, 0.3, 1)`; // Turbo 3x lebih cepat
+                    reel.style.transform = `translateY(${totalHeight}px)`;
+                });
+
+                setTimeout(() => {
+                    reels.forEach((reel, index) => {
+                        lastPositions[index] = finalPositions[index]; 
+                        reel.style.transition = "none";
+                        reel.style.transform = `translateY(${lastPositions[index]}px)`;
+                    });
+
+                    checkWin();
+                    isSpinning = false;
+
+                    if (autoSpin) setTimeout(spinSlot, 500);
+                }, turboMode ? 1000 : 3000);  // Durasi lebih cepat saat turbo mode
+            }
+
+            function checkWin() {
+                let winAmount = Math.random() < 0.3 ? betAmount * 5 : 0;
+
+                if (winAmount > 0) {
+                    saldo += winAmount;
+                    document.getElementById("message").innerText = `Menang! +${winAmount.toLocaleString('id-ID')} 🎉`;
+                    document.getElementById("saldo").innerText = saldo.toLocaleString('id-ID');
+                    playSound("win-sound");
+                } else {
+                    document.getElementById("message").innerText = "Coba lagi!";
+                }
+            }
+
+            document.getElementById("spin-btn").addEventListener("click", spinSlot);
+            document.getElementById("turbo-btn").addEventListener("click", () => {
+                turboMode = !turboMode;
+                const turboButton = document.getElementById("turbo-btn");
+                turboButton.classList.toggle("active", turboMode); // Ubah warna tombol saat turbo aktif
+            });
+            document.getElementById("auto-btn").addEventListener("click", () => {
+                autoSpin = true;
+                spinSlot();
+            });
+            document.getElementById("stop-btn").addEventListener("click", () => {
+                autoSpin = false;
+            });
+
+            createSlots();
+        });
+    </script>
+</body>
+</html>
